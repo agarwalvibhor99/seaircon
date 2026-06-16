@@ -290,8 +290,8 @@ export default function Home() {
       nextErrors.email = "Please enter a valid email address.";
     }
 
-    if (!/^\d{7,12}$/.test(phoneNumber.replace(/\D/g, ""))) {
-      nextErrors.phoneNumber = "Please enter a valid phone number.";
+    if (!/^\d{10}$/.test(phoneNumber.replace(/\D/g, ""))) {
+      nextErrors.phoneNumber = "Please enter a 10 digit phone number.";
     }
 
     if (message.length < 10) {
@@ -877,6 +877,8 @@ export default function Home() {
                   name="phoneNumber"
                   placeholder="9311885464"
                   inputMode="numeric"
+                  maxLength={10}
+                  pattern="[0-9]{10}"
                   aria-invalid={Boolean(formErrors.phoneNumber)}
                   required
                 />

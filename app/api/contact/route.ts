@@ -30,8 +30,8 @@ function isValidEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
-function isValidPhone(value: string) {
-  return /^\+?\d[\d\s()-]{6,18}$/.test(value);
+function isValidPhoneNumber(value: string) {
+  return /^\d{10}$/.test(value.replace(/\D/g, ""));
 }
 
 export async function POST(request: Request) {
@@ -78,9 +78,9 @@ export async function POST(request: Request) {
     );
   }
 
-  if (!isValidPhone(phone)) {
+  if (!isValidPhoneNumber(phoneNumber || phone)) {
     return NextResponse.json(
-      { message: "Please enter a valid phone number." },
+      { message: "Please enter a 10 digit phone number." },
       { status: 400 },
     );
   }
