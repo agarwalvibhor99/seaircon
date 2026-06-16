@@ -1570,6 +1570,7 @@ p {
 }
 
 .contact-form input,
+.contact-form select,
 .contact-form textarea {
   background: #f7f9fb;
   border: 1px solid #e3e8ef;
@@ -1584,9 +1585,43 @@ p {
 }
 
 .contact-form input:focus,
+.contact-form select:focus,
 .contact-form textarea:focus {
   border-color: var(--blue);
   box-shadow: 0 0 0 3px rgba(11,103,208,.09);
+}
+
+.contact-form input[aria-invalid="true"],
+.contact-form textarea[aria-invalid="true"] {
+  border-color: #d84b4b;
+}
+
+.phone-field {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(150px, .38fr) 1fr;
+}
+
+.contact-form select {
+  appearance: none;
+  background-image:
+    linear-gradient(45deg, transparent 50%, #526176 50%),
+    linear-gradient(135deg, #526176 50%, transparent 50%);
+  background-position:
+    calc(100% - 18px) 50%,
+    calc(100% - 13px) 50%;
+  background-repeat: no-repeat;
+  background-size: 5px 5px, 5px 5px;
+  cursor: pointer;
+  padding-right: 34px;
+}
+
+.field-error {
+  color: #a43131;
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  margin-top: 7px;
 }
 
 .contact-form .button {
@@ -2018,6 +2053,10 @@ footer {
   }
 
   .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .phone-field {
     grid-template-columns: 1fr;
   }
 

@@ -4,6 +4,8 @@ type ContactPayload = {
   firstName?: unknown;
   lastName?: unknown;
   email?: unknown;
+  countryCode?: unknown;
+  phoneNumber?: unknown;
   phone?: unknown;
   message?: unknown;
   companyWebsite?: unknown;
@@ -28,6 +30,10 @@ function isValidEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
+function isValidPhone(value: string) {
+  return /^\+?\d[\d\s()-]{6,18}$/.test(value);
+}
+
 export async function POST(request: Request) {
   let payload: ContactPayload;
 
@@ -43,7 +49,11 @@ export async function POST(request: Request) {
   const firstName = clean(payload.firstName);
   const lastName = clean(payload.lastName);
   const email = clean(payload.email);
-  const phone = clean(payload.phone);
+  const countryCode = clean(payload.countryCode) || "+91";
+  const phoneNumber = clean(payload.phoneNumber);
+  const phone = phoneNumber
+    ? `${countryCode} ${phoneNumber}`
+    : clean(payload.phone);
   const message = clean(payload.message);
   const companyWebsite = clean(payload.companyWebsite);
 
@@ -68,6 +78,20 @@ export async function POST(request: Request) {
     );
   }
 
+  if (!isValidPhone(phone)) {
+    return NextResponse.json(
+      { message: "Please enter a valid phone number." },
+      { status: 400 },
+    );
+  }
+
+  if (message.length < 10) {
+    return NextResponse.json(
+      { message: "Please add a short message about your requirement." },
+      { status: 400 },
+    );
+  }
+
   const resendApiKey = process.env.RESEND_API_KEY;
   const toEmail = process.env.CONTACT_TO_EMAIL || "noida@seaircon.com";
   const fromEmail =
@@ -75,7 +99,7 @@ export async function POST(request: Request) {
 
   if (!resendApiKey) {
     return NextResponse.json(
-      { message: "Contact form is not configured yet." },
+      { message: "Contact form is not configured yet. Please call or email us directly." },
       { status: 500 },
     );
   }
@@ -127,8 +151,31 @@ export async function POST(request: Request) {
   });
 
   if (!response.ok) {
+    let providerMessage = "";
+
+    try {
+      const providerError = (await response.json()) as { message?: string; error?: string };
+      providerMessage = providerError.message || providerError.error || "";
+    } catch {
+      providerMessage = "";
+    }
+
+    console.error("Resend email failed", {
+      status: response.status,
+      message: providerMessage,
+    });
+
+    const isConfigurationIssue =
+      response.status === 401 ||
+      response.status === 403 ||
+      /domain|from|sender|api key/i.test(providerMessage);
+
     return NextResponse.json(
-      { message: "Unable to send your inquiry. Please call or email us directly." },
+      {
+        message: isConfigurationIssue
+          ? "Contact email is not fully configured yet. Please call or email us directly."
+          : "Unable to send your inquiry. Please call or email us directly.",
+      },
       { status: 502 },
     );
   }

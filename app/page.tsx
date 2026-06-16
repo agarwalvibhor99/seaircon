@@ -133,6 +133,13 @@ const otherClients = [
   "BSNL",
 ];
 
+const countryCodes = [
+  { code: "+91", label: "India (+91)" },
+  { code: "+1", label: "US / Canada (+1)" },
+  { code: "+44", label: "UK (+44)" },
+  { code: "+971", label: "UAE (+971)" },
+];
+
 const awards = [
   {
     year: "2018",
@@ -259,6 +266,7 @@ export default function Home() {
     "idle" | "submitting" | "success" | "error"
   >("idle");
   const [formMessage, setFormMessage] = useState("");
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const group = productGroups[activeGroup];
 
   async function handleContactSubmit(event: FormEvent<HTMLFormElement>) {
@@ -266,9 +274,40 @@ export default function Home() {
 
     const form = event.currentTarget;
     const formData = new FormData(form);
+    const firstName = String(formData.get("firstName") || "").trim();
+    const lastName = String(formData.get("lastName") || "").trim();
+    const email = String(formData.get("email") || "").trim();
+    const countryCode = String(formData.get("countryCode") || "+91").trim();
+    const phoneNumber = String(formData.get("phoneNumber") || "").trim();
+    const message = String(formData.get("message") || "").trim();
+    const nextErrors: Record<string, string> = {};
+
+    if (firstName.length < 2) {
+      nextErrors.firstName = "Please enter your first name.";
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      nextErrors.email = "Please enter a valid email address.";
+    }
+
+    if (!/^\d{7,12}$/.test(phoneNumber.replace(/\D/g, ""))) {
+      nextErrors.phoneNumber = "Please enter a valid phone number.";
+    }
+
+    if (message.length < 10) {
+      nextErrors.message = "Please add at least 10 characters about your requirement.";
+    }
+
+    if (Object.keys(nextErrors).length > 0) {
+      setFormErrors(nextErrors);
+      setFormStatus("error");
+      setFormMessage("Please fix the highlighted fields before sending.");
+      return;
+    }
 
     setFormStatus("submitting");
     setFormMessage("");
+    setFormErrors({});
 
     try {
       const response = await fetch("/api/contact", {
@@ -277,11 +316,12 @@ export default function Home() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          firstName: formData.get("firstName"),
-          lastName: formData.get("lastName"),
-          email: formData.get("email"),
-          phone: formData.get("phone"),
-          message: formData.get("message"),
+          firstName,
+          lastName,
+          email,
+          countryCode,
+          phoneNumber,
+          message,
           companyWebsite: formData.get("companyWebsite"),
         }),
       });
@@ -800,8 +840,11 @@ export default function Home() {
                   type="text"
                   name="firstName"
                   placeholder="First name"
+                  minLength={2}
+                  aria-invalid={Boolean(formErrors.firstName)}
                   required
                 />
+                {formErrors.firstName ? <small className="field-error">{formErrors.firstName}</small> : null}
               </label>
               <label>
                 <span>Last name</span>
@@ -814,12 +857,31 @@ export default function Home() {
                 type="email"
                 name="email"
                 placeholder="you@company.com"
+                aria-invalid={Boolean(formErrors.email)}
                 required
               />
+              {formErrors.email ? <small className="field-error">{formErrors.email}</small> : null}
             </label>
             <label>
               <span>Phone number</span>
-              <input type="tel" name="phone" placeholder="+91" required />
+              <div className="phone-field">
+                <select name="countryCode" defaultValue="+91" aria-label="Country code">
+                  {countryCodes.map((country) => (
+                    <option key={country.code} value={country.code}>
+                      {country.label}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  type="tel"
+                  name="phoneNumber"
+                  placeholder="9311885464"
+                  inputMode="numeric"
+                  aria-invalid={Boolean(formErrors.phoneNumber)}
+                  required
+                />
+              </div>
+              {formErrors.phoneNumber ? <small className="field-error">{formErrors.phoneNumber}</small> : null}
             </label>
             <label>
               <span>Message</span>
@@ -827,8 +889,11 @@ export default function Home() {
                 rows={4}
                 name="message"
                 placeholder="How can we help?"
+                minLength={10}
+                aria-invalid={Boolean(formErrors.message)}
                 required
               />
+              {formErrors.message ? <small className="field-error">{formErrors.message}</small> : null}
             </label>
             <button
               className="button button-primary"
