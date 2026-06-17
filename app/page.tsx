@@ -140,6 +140,8 @@ const countryCodes = [
   { code: "+971", label: "UAE (+971)" },
 ];
 
+const web3FormsEndpoint = "https://api.web3forms.com/submit";
+
 const awards = [
   {
     year: "2018",
@@ -268,6 +270,7 @@ export default function Home() {
   const [formMessage, setFormMessage] = useState("");
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const group = productGroups[activeGroup];
+  const web3FormsAccessKey = process.env.NEXT_PUBLIC_WEB3FORMS_ACCESS_KEY;
 
   async function handleContactSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -310,30 +313,47 @@ export default function Home() {
     setFormErrors({});
 
     try {
-      const response = await fetch("/api/contact", {
+      if (!web3FormsAccessKey) {
+        throw new Error("Contact form is not configured yet. Please call or email us directly.");
+      }
+
+      const fullName = [firstName, lastName].filter(Boolean).join(" ");
+      const phone = `${countryCode} ${phoneNumber}`;
+      const response = await fetch(web3FormsEndpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Accept: "application/json",
         },
         body: JSON.stringify({
-          firstName,
-          lastName,
+          access_key: web3FormsAccessKey,
+          subject: `New SE Aircon inquiry from ${fullName}`,
+          from_name: "SE Aircon Website",
+          name: fullName,
           email,
-          countryCode,
-          phoneNumber,
+          phone,
+          "First Name": firstName,
+          "Last Name": lastName || "-",
+          "Country Code": countryCode,
+          "Phone Number": phoneNumber,
           message,
-          companyWebsite: formData.get("companyWebsite"),
+          botcheck: Boolean(formData.get("companyWebsite")),
         }),
       });
 
-      const result = (await response.json()) as { message?: string };
+      const result = (await response.json()) as {
+        success?: boolean;
+        message?: string;
+      };
 
-      if (!response.ok) {
-        throw new Error(result.message || "Unable to send your inquiry.");
+      if (!response.ok || !result.success) {
+        throw new Error(
+          result.message || "Unable to send your inquiry. Please call or email us directly.",
+        );
       }
 
       setFormStatus("success");
-      setFormMessage(result.message || "Thanks. We will get back to you shortly.");
+      setFormMessage("Thanks. We will get back to you shortly.");
       form.reset();
     } catch (error) {
       setFormStatus("error");
